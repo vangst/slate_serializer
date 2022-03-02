@@ -10,12 +10,7 @@ module SlateSerializer
         text = '' if text.nil?
 
         lines = split_text_into_lines(text)
-        {
-          document: {
-            object: 'document',
-            nodes: convert_lines_into_nodes(lines)
-          }
-        }
+        convert_lines_into_nodes(lines)
       end
 
       # Convert a Slate Document to plain text
@@ -24,10 +19,11 @@ module SlateSerializer
       # @param options format [Hash] options for the serializer, delimitter defaults to "\n"
       # @return [String] plain text version of the Slate documnent
       def serializer(value, options = {})
-        return '' unless value.key?(:document)
+        return '' unless value.is_a?(Array)
 
         options[:delimiter] = "\n" unless options.key?(:delimiter)
-        serialize_node(value[:document], options)
+
+        value.map { |n| serialize_node(n, options) }.join(options[:delimiter])
       end
 
       private
@@ -53,23 +49,19 @@ module SlateSerializer
       def convert_lines_into_nodes(lines)
         lines.map do |line|
           {
-            object: 'block',
             type: 'paragraph',
-            data: {},
-            nodes: [
-              object: 'text',
-              text: line,
-              marks: []
+            children: [
+              text: line
             ]
           }
         end
       end
 
       def serialize_node(node, options)
-        if node[:object] == 'document' || node[:object] == 'block'
-          node[:nodes].map { |n| serialize_node(n, options) }.join(options[:delimiter])
-        else
+        if node[:text]
           node[:text]
+        else
+          node[:children].map { |n| serialize_node(n, options) }.join(options[:delimiter])          
         end
       end
     end

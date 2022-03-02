@@ -52,16 +52,9 @@ module SlateSerializer
         self.mark_elements = options[:mark_elements] || MARK_ELEMENTS
 
         html = html.gsub('<br>', "\n")
-        nodes = Nokogiri::HTML.fragment(html).elements.map do |element|
+        Nokogiri::HTML.fragment(html).elements.map do |element|
           element_to_node(element)
         end
-
-        {
-          document: {
-            object: 'document',
-            nodes: nodes
-          }
-        }
       end
 
       # Convert html to a Slate document
@@ -69,9 +62,9 @@ module SlateSerializer
       # @param value format [Hash] the Slate document
       # @return [String] plain text version of the Slate documnent
       def serializer(value)
-        return '' unless value.key?(:document)
+        return '' unless value.is_a?(Array)
 
-        serialize_node(value[:document])
+        value.map { |n| serialize_node(n) }.join
       end
 
       private
@@ -80,8 +73,7 @@ module SlateSerializer
 
       def element_to_node(element)
         type = convert_name_to_type(element)
-
-        nodes = element.children.flat_map do |child|
+        children = element.children.flat_map do |child|
           if block?(child)
             element_to_node(child)
           elsif inline?(child)
@@ -93,14 +85,14 @@ module SlateSerializer
           end
         end.compact
 
-        nodes << { marks: [], object: 'text', text: '' } if nodes.empty? && type != 'image'
+        children << { text: '' } if children.empty? && type != 'image'
 
-        {
-          data: element.attributes.each_with_object({}) { |a, h| h[a[1].name] = a[1].value },
-          object: 'block',
-          nodes: nodes,
+        node = {
+          children: children,
           type: type
         }
+
+        type.is_a?(Proc) ? type.call(node, element) : node
       end
 
       def element_to_inline(element)
@@ -110,9 +102,7 @@ module SlateSerializer
         end
 
         {
-          data: element.attributes.each_with_object({}) { |a, h| h[a[1].name] = a[1].value },
-          object: 'inline',
-          nodes: nodes,
+          children: nodes,
           type: type
         }
       end
@@ -133,12 +123,13 @@ module SlateSerializer
       end
 
       def element_to_text(element, mark = nil)
-        marks = [mark, convert_name_to_mark(element.name)].compact
         {
-          marks: marks,
-          object: 'text',
           text: element.text
-        }
+        }.tap do |text|
+          [mark, convert_name_to_mark(element.name)].compact.each do |m|
+            text[m[:type].to_sym] = true
+          end
+        end
       end
 
       def convert_name_to_type(element)
@@ -152,8 +143,6 @@ module SlateSerializer
         return nil unless type
 
         {
-          data: [],
-          object: 'mark',
           type: type
         }
       end
@@ -167,44 +156,31 @@ module SlateSerializer
       end
 
       def empty_state
-        {
-          document: {
-            object: 'document',
-            nodes: [
+        [
+          {
+            type: 'paragraph',
+            children: [
               {
-                data: {},
-                object: 'block',
-                type: 'paragraph',
-                nodes: [
-                  {
-                    marks: [],
-                    object: 'text',
-                    text: ''
-                  }
-                ]
+                text: ''
               }
             ]
           }
-        }
+        ] 
       end
 
       def serialize_node(node)
-        if node[:object] == 'document'
-          node[:nodes].map { |n| serialize_node(n) }.join
-        elsif node[:object] == 'block'
-          children = node[:nodes].map { |n| serialize_node(n) }.join
+        if node[:text]
+          node[:text]
+        else
+          children = node[:children].map { |n| serialize_node(n) }.join
 
           element = ELEMENTS.find { |_, v| v == node[:type] }[0]
-          data = node[:data].map { |k, v| "#{k}=\"#{v}\"" }
-
+          
           if %i[ol1 ola].include?(element)
-            data << ["type=\"#{element.to_s[-1]}\""]
             element = :ol
           end
 
-          "<#{element}#{!data.empty? ? " #{data.join(' ')}" : ''}>#{children}</#{element}>"
-        else
-          node[:text]
+          "<#{element}>#{children}</#{element}>"
         end
       end
     end

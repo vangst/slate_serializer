@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    slate_serializer (0.5.1)
+    slate_serializer (1.0.0)
       nokogiri (~> 1.11)
 
 GEM
@@ -38,4 +38,4 @@ DEPENDENCIES
   slate_serializer!
 
 BUNDLED WITH
-   2.2.3
+   2.2.22

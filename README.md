@@ -22,12 +22,12 @@ Or install it yourself as:
 
 To convert between plain text and Slate document use:
 
-    $ SlateSerializer::Plain.serializer({ document: {...}}) => text
-    $ SlateSerializer::Plain.deserializer(text) => { document: {...}}
+    $ SlateSerializer::Plain.serializer([...]) => text
+    $ SlateSerializer::Plain.deserializer(text) => [...]
 
 To convert between html and Slate document use:
 
-    $ SlateSerializer::Html.deserializer(html) => { document: {...}}
+    $ SlateSerializer::Html.deserializer(html) => [...]
 
 ## Contributing
 

@@ -5,23 +5,16 @@ RSpec.describe SlateSerializer::Html do
     context 'when the html is nil' do
       it 'return empty state' do
         expect(described_class.deserializer(nil)).to eq(
-          document: {
-            object: 'document',
-            nodes: [
-              {
-                data: {},
-                object: 'block',
-                type: 'paragraph',
-                nodes: [
-                  {
-                    marks: [],
-                    object: 'text',
-                    text: ''
-                  }
-                ]
-              }
-            ]
-          }
+          [
+            {
+              type: 'paragraph',
+              children: [
+                {
+                  text: ''
+                }
+              ]
+            }
+          ]
         )
       end
     end
@@ -43,22 +36,21 @@ RSpec.describe SlateSerializer::Html do
       it 'converts the html into raw' do
         raw = described_class.deserializer(html)
 
-        expect(raw[:document][:nodes].length).to be 5
-        expect(raw[:document][:nodes][0][:type]).to eq 'paragraph'
-        expect(raw[:document][:nodes][1][:type]).to eq 'paragraph'
-        expect(raw[:document][:nodes][2][:type]).to eq 'unordered-list'
-        expect(raw[:document][:nodes][3][:type]).to eq 'paragraph'
+        expect(raw.length).to be 5
+        expect(raw[0][:type]).to eq 'paragraph'
+        expect(raw[1][:type]).to eq 'paragraph'
+        expect(raw[2][:type]).to eq 'unordered-list'
+        expect(raw[3][:type]).to eq 'paragraph'
 
-        expect(raw[:document][:nodes][2][:nodes].length).to be 1
-        expect(raw[:document][:nodes][2][:nodes][0][:type]).to eq 'list-item'
+        expect(raw[2][:children].length).to be 1
+        expect(raw[2][:children][0][:type]).to eq 'list-item'
 
-        expect(raw[:document][:nodes][3][:type]).to eq 'paragraph'
-        expect(raw[:document][:nodes][3][:nodes].length).to be 2
-        expect(raw[:document][:nodes][3][:nodes][0][:object]).to eq 'text'
-        expect(raw[:document][:nodes][3][:nodes][0][:marks][0][:type]).to eq 'bold'
-        expect(raw[:document][:nodes][3][:nodes][1][:marks][1][:type]).to eq 'italic'
+        expect(raw[3][:type]).to eq 'paragraph'
+        expect(raw[3][:children].length).to be 2
+        expect(raw[3][:children][0][:bold]).to eq true
+        expect(raw[3][:children][1][:italic]).to eq true
 
-        expect(raw[:document][:nodes][4][:type]).to eq 'hr'
+        expect(raw[4][:type]).to eq 'hr'
       end
     end
 
@@ -84,12 +76,11 @@ RSpec.describe SlateSerializer::Html do
       it 'converts the html into raw' do
         raw = described_class.deserializer(html)
 
-        expect(raw[:document][:nodes].length).to be 1
-        expect(raw[:document][:nodes][0][:type]).to eq 'ordered-list'
-        expect(raw[:document][:nodes][0][:nodes].length).to be 4
-        expect(raw[:document][:nodes][0][:nodes][1][:nodes].length).to be 2
-        expect(raw[:document][:nodes][0][:nodes][1][:nodes][0][:object]).to eq 'text'
-        expect(raw[:document][:nodes][0][:nodes][1][:nodes][1][:type]).to eq 'alpha-ordered-list'
+        expect(raw.length).to be 1
+        expect(raw[0][:type]).to eq 'ordered-list'
+        expect(raw[0][:children].length).to be 4
+        expect(raw[0][:children][1][:children].length).to be 2
+        expect(raw[0][:children][1][:children][1][:type]).to eq 'alpha-ordered-list'
       end
     end
 
@@ -102,8 +93,8 @@ RSpec.describe SlateSerializer::Html do
       it 'converts the html into raw' do
         raw = described_class.deserializer(html)
 
-        expect(raw[:document][:nodes].length).to be 4
-        expect(raw[:document][:nodes][2][:type]).to eq 'table'
+        expect(raw.length).to be 4
+        expect(raw[2][:type]).to eq 'table'
       end
     end
 
@@ -118,14 +109,24 @@ RSpec.describe SlateSerializer::Html do
       )
 
       it 'converts the html into raw' do
-        raw = described_class.deserializer(html)
+        options = {
+          elements: SlateSerializer::Html::ELEMENTS.merge(
+            'img': ->(node, element) { 
+              node.merge(
+                url: element.attributes["src"],
+                type: "image",
+              )
+            }
+          )
+        }
+        raw = described_class.deserializer(html, options)
 
-        expect(raw[:document][:nodes].length).to be 3
-        expect(raw[:document][:nodes][1][:type]).to eq 'paragraph'
-        expect(raw[:document][:nodes][1][:nodes][0][:type]).to eq 'image'
-        expect(raw[:document][:nodes][2][:type]).to eq 'figure'
-        expect(raw[:document][:nodes][2][:nodes][0][:type]).to eq 'image'
-        expect(raw[:document][:nodes][2][:nodes][1][:type]).to eq 'figcaption'
+        expect(raw.length).to be 3
+        expect(raw[1][:type]).to eq 'paragraph'
+        expect(raw[1][:children][0][:type]).to eq 'image'
+        expect(raw[2][:type]).to eq 'figure'
+        expect(raw[2][:children][0][:type]).to eq 'image'
+        expect(raw[2][:children][1][:type]).to eq 'figcaption'
       end
     end
 
@@ -137,9 +138,9 @@ RSpec.describe SlateSerializer::Html do
       it 'converts the html into raw' do
         raw = described_class.deserializer(html)
 
-        expect(raw[:document][:nodes].length).to be 1
-        expect(raw[:document][:nodes][0][:type]).to eq 'paragraph'
-        expect(raw[:document][:nodes][0][:nodes][0][:text]).to eq ''
+        expect(raw.length).to be 1
+        expect(raw[0][:type]).to eq 'paragraph'
+        expect(raw[0][:children][0][:text]).to eq ''
       end
     end
   end
@@ -153,57 +154,39 @@ RSpec.describe SlateSerializer::Html do
 
     context 'when the value holds an Slate Value' do
       it 'converts the Slate value to plain text' do
-        value = {
-          document: {
-            object: 'document',
-            nodes: [
+        value = [
+          {
+            type: 'paragraph',
+            children: [
+              { text: 'Some text and lalala' },
               {
-                data: {},
-                object: 'block',
-                type: 'paragraph',
-                nodes: [
-                  { text: 'Some text and lalala' },
+                url: 'https://via.placeholder.com/150.png',
+                type: 'image',
+                children: []
+              }
+            ]
+          },
+          {
+            type: 'paragraph',
+            children: [
+              { text: 'Next line' }
+            ]
+          },
+          {
+            type: 'alpha-ordered-list',
+            children: [
+              {
+                type: 'list-item',
+                children: [
                   {
-                    data: {
-                      src: 'https://via.placeholder.com/150.png'
-                    },
-                    type: 'image',
-                    nodes: [],
-                    object: 'block'
-                  }
-                ]
-              },
-              {
-                data: {},
-                object: 'block',
-                type: 'paragraph',
-                nodes: [
-                  { text: 'Next line' }
-                ]
-              },
-              {
-                data: {},
-                object: 'block',
-                type: 'alpha-ordered-list',
-                nodes: [
-                  {
-                    data: {},
-                    object: 'block',
-                    type: 'list-item',
-                    nodes: [
-                      {
-                        text: 'list item',
-                        marks: [],
-                        object: 'text'
-                      }
-                    ]
+                    text: 'list item'
                   }
                 ]
               }
             ]
           }
-        }
-
+        ]
+        
         html = described_class.serializer(value)
         expect(html).to eq '<p>Some text and lalala<img src="https://via.placeholder.com/150.png"></img></p><p>Next line</p><ol type="a"><li>list item</li></ol>'
       end
