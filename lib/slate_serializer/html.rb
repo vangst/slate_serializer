@@ -30,7 +30,7 @@ module SlateSerializer
     # Default mark types list
     MARK_ELEMENTS = {
       'em': 'italic',
-      'strong': 'bold',
+      'strong': 'strong',
       'u': 'underline'
     }.freeze
 
