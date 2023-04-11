@@ -10,8 +10,6 @@ module SlateSerializer
       'li': 'listItem',
       'p': 'paragraph',
       'div': 'paragraph',
-      'ol1': 'orderedList',
-      'ola': 'alphaOrderedList',
       'ol': 'orderedList',
       'ul': 'unorderedList',
       'table': 'table',
@@ -172,11 +170,11 @@ module SlateSerializer
         if node[:text]
           node[:text]
         else
-          children = node[:children].map { |n| serialize_node(n) }.join
-
-          element = ELEMENTS.find { |_, v| v == node[:type] }[0]
+          children = node[:children].map { |n| serialize_node(n) }.join 
           
-          if %i[ol1 ola].include?(element)
+          element = ELEMENTS.find { |_, v|  v == node[:type] }[0]
+          
+          if %i[ol].include?(element)
             element = :ol
           end
 

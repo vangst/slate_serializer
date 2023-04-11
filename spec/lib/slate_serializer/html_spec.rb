@@ -39,15 +39,16 @@ RSpec.describe SlateSerializer::Html do
         expect(raw.length).to be 5
         expect(raw[0][:type]).to eq 'paragraph'
         expect(raw[1][:type]).to eq 'paragraph'
-        expect(raw[2][:type]).to eq 'unordered-list'
+        expect(raw[2][:type]).to eq 'unorderedList'
         expect(raw[3][:type]).to eq 'paragraph'
 
         expect(raw[2][:children].length).to be 1
-        expect(raw[2][:children][0][:type]).to eq 'list-item'
+        expect(raw[2][:children][0][:type]).to eq 'listItem'
 
         expect(raw[3][:type]).to eq 'paragraph'
         expect(raw[3][:children].length).to be 2
-        expect(raw[3][:children][0][:bold]).to eq true
+
+        expect(raw[3][:children][0][:strong]).to eq true
         expect(raw[3][:children][1][:italic]).to eq true
 
         expect(raw[4][:type]).to eq 'hr'
@@ -59,7 +60,7 @@ RSpec.describe SlateSerializer::Html do
 <ol>
     <li>Deze verordening is van toepassing op de geheel of gedeeltelijk geautomatiseerde verwerking, alsmede op de&nbsp;verwerking van persoonsgegevens die in een bestand zijn opgenomen of die bestemd zijn om daarin te worden&nbsp;opgenomen.</li>
     <li>Deze verordening is niet van toepassing op de verwerking van persoonsgegevens:
-        <ol type="a">
+        <ol>
             <li>in het kader van activiteiten die buiten de werkingssfeer van het Unierecht vallen.</li>
             <li>door de lidstaten bij de uitvoering van activiteiten die binnen de werkingssfeer van titel V, hoofdstuk 2, VEU vallen.</li>
             <li>door een natuurlijke persoon bij de uitoefening van een zuiver persoonlijke of huishoudelijke activiteit.</li>
@@ -77,10 +78,10 @@ RSpec.describe SlateSerializer::Html do
         raw = described_class.deserializer(html)
 
         expect(raw.length).to be 1
-        expect(raw[0][:type]).to eq 'ordered-list'
+        expect(raw[0][:type]).to eq 'orderedList'
         expect(raw[0][:children].length).to be 4
         expect(raw[0][:children][1][:children].length).to be 2
-        expect(raw[0][:children][1][:children][1][:type]).to eq 'alpha-ordered-list'
+        expect(raw[0][:children][1][:children][1][:type]).to eq 'orderedList'
       end
     end
 
@@ -173,10 +174,10 @@ RSpec.describe SlateSerializer::Html do
             ]
           },
           {
-            type: 'alpha-ordered-list',
+            type: 'orderedList',
             children: [
               {
-                type: 'list-item',
+                type: 'listItem',
                 children: [
                   {
                     text: 'list item'
@@ -188,7 +189,7 @@ RSpec.describe SlateSerializer::Html do
         ]
         
         html = described_class.serializer(value)
-        expect(html).to eq '<p>Some text and lalala<img src="https://via.placeholder.com/150.png"></img></p><p>Next line</p><ol type="a"><li>list item</li></ol>'
+        expect(html).to eq '<p>Some text and lalala<img src="https://via.placeholder.com/150.png"></img></p><p>Next line</p><ol><li>list item</li></ol>'
       end
     end
   end
