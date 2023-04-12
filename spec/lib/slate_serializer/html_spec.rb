@@ -78,10 +78,10 @@ RSpec.describe SlateSerializer::Html do
         raw = described_class.deserializer(html)
 
         expect(raw.length).to be 1
-        expect(raw[0][:type]).to eq 'orderedList'
+        expect(raw[0][:type]).to eq 'list'
         expect(raw[0][:children].length).to be 4
         expect(raw[0][:children][1][:children].length).to be 2
-        expect(raw[0][:children][1][:children][1][:type]).to eq 'orderedList'
+        expect(raw[0][:children][1][:children][1][:type]).to eq 'list'
       end
     end
 
@@ -174,7 +174,7 @@ RSpec.describe SlateSerializer::Html do
             ]
           },
           {
-            type: 'orderedList',
+            type: 'list',
             children: [
               {
                 type: 'listItem',
